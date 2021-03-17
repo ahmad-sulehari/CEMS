@@ -1,6 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MinLengthValidator, RegexValidator
-
+from django.TIME_ZONE import DateTimeField
 # Create your models here.
 MALE = 'male'
     FEMALE = 'female'
@@ -25,8 +25,8 @@ class Participant(models.Model):
     phone_number = models.CharField(
         max_length=11,
         validators=[
-            MinLengthValidator(11), MinValueValidator('03000000000'), RegexValidator(r'[0-9]*', message='only digits are allowed')        
-        ] 
+            MinLengthValidator(11), MinValueValidator('03000000000'), RegexValidator(r'[0-9]*', message='only digits are allowed')
+        ]
     )
     participation_status = models.CharField()
     student_id = models.CharField(max_length=10)
@@ -59,15 +59,15 @@ class Chairperson(models.Model):
     phone_number = models.CharField(
         max_length=11,
         validators=[
-            MinLengthValidator(11), MinValueValidator('03000000000'), RegexValidator(r'[0-9]*', message='only digits are allowed')        
-        ] 
+            MinLengthValidator(11), MinValueValidator('03000000000'), RegexValidator(r'[0-9]*', message='only digits are allowed')
+        ]
     )
     email = models.EmailField(max_length=254, unique=True)
     password = models.CharField(max_length=20)
-    username = models.CharField(max_length=12, 
+    username = models.CharField(max_length=12,
     validators=[
         MinLengthValidator(5)
-    ] 
+    ]
     )
     designation = models.CharField(max_length=20)
     status = models.BooleanField() # active or retired from chairperson role
@@ -101,7 +101,37 @@ class Item(models.Model):
     cost = models.DecimalField()
     damaged = models.IntegerField()
 
-
 class Requied_items(models.Model):
     item_id = models.ForeignKey(Item, on_delete=models.CASCADE)
     quantity = models.IntegerField()
+#mahnoor
+class Funds(models.Model):
+    total_fund = models.DecimalField()
+    funds_remaining = models.DecimalField()
+
+class Expenditure(models.Model):
+    amount_spent = models.DecimalField()
+    purpose = models.CharField(max_length=100)
+    eventBody_id = models.ForeignKey(EventBody, on_delete=models.CASCADE)
+
+class Volunteer(models.Model):
+    skill = models.CharField(max_length=100)
+    participant_id = models.ForeignKey(Participant, on_delete=models.CASCADE)
+    eventBody_id = models.ForeignKey(EventBody, on_delete=models.CASCADE)
+    available = models.BooleanField()
+
+class Timeslot(models.Model):
+    day = models.CharField(max_length=100)
+    date = models.DateField()
+    timeslot = models.TimeField()
+
+class Available_slots(models.Model):
+    participant_id = models.ForeignKey(Participant, on_delete=models.CASCADE)
+    timeslot_id = models.ForeignKey(Timeslot, on_delete=models.CASCADE)
+
+class Item_issued(models.Model):
+    item_id = models.ForeignKey(Item, on_delete=models.CASCADE)
+    catagory_id = models.ForeignKey(Catagory, on_delete=models.CASCADE)quantity = models.IntegerField()
+    Catagory_cordinator_id = models.ForeignKey(Catagory_cordinator, on_delete=models.CASCADE)
+    time_of_issue = models.DateTimeField()
+    return_time = models.DateTimeField()
