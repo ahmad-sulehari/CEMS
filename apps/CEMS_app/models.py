@@ -1,11 +1,11 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MinLengthValidator, RegexValidator
-from django.TIME_ZONE import DateTimeField
+
 # Create your models here.
 MALE = 'male'
-    FEMALE = 'female'
-    OTHER = 'other'
-    GENDER_CHOICES = [
+FEMALE = 'female'
+OTHER = 'other'
+GENDER_CHOICES = [
         (MALE, 'Male'),
         (FEMALE, 'Female'),
         (OTHER, 'Other'),
@@ -13,10 +13,10 @@ MALE = 'male'
 
 
 class Participant(models.Model):
-    f_name = models.CharField()
-    l_name = models.CharField()
+    f_name = models.CharField(max_length=60)
+    l_name = models.CharField(max_length=60)
     age = models.DateField(verbose_name=('Date of Birth'))
-    gender = models.CharField(choices=GENDER_CHOICES, default=MALE)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default=MALE)
     email = models.EmailField(max_length=245, unique=True)
     password = models.CharField(max_length=20)
     section = models.CharField(max_length=3)
@@ -28,10 +28,10 @@ class Participant(models.Model):
             MinLengthValidator(11), MinValueValidator('03000000000'), RegexValidator(r'[0-9]*', message='only digits are allowed')
         ]
     )
-    participation_status = models.CharField()
+    participation_status = models.BooleanField()
     student_id = models.CharField(max_length=10)
     username = models.CharField(max_length=12,
-        validators==[
+        validators=[
             MinLengthValidator(5),
         ]
     )
@@ -40,22 +40,26 @@ class Participant(models.Model):
     def __str__(self):
         return self.email
 
+
 class Team(models.Model):
     team_lead = models.ForeignKey(Participant, on_delete=models.CASCADE)
+
 
 class Team_participant(models.Model):
     team_id = models.ForeignKey(Team, on_delete=models.CASCADE)
     participant_id = models.ForeignKey(Participant, on_delete=models.CASCADE)
 
+
 class EventBody(models.Model):
     participant_id = models.ForeignKey(Participant, on_delete= models.CASCADE)
-    role = models.CharField()
-    position = models.CharField()
+    role = models.CharField(max_length=60)
+    position = models.CharField(max_length=60)
+
 
 class Chairperson(models.Model):
     first_name = models.CharField(max_length=60)
     last_name = models.CharField(max_length=60)
-    gender = models.CharField(choices=GENDER_CHOICES, default=MALE)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default=MALE)
     phone_number = models.CharField(
         max_length=11,
         validators=[
@@ -77,16 +81,16 @@ class Event(models.Model):
     title = models.CharField(max_length=256)
     start_date = models.DateField()
     end_date = models.DateField()
-    location = models.CharField()
-    description = models.CharField()
-    status = models.CharField() # Archived or active
+    location = models.CharField(max_length=256)
+    description = models.TextField()
+    status = models.BooleanField() # Archived or active
 
 
 class Catagory(models.Model):
-    title = models.CharField()
-    description = models.CharField()
-    time_limit =  models.TimeField(blank=True) # time allowed for one round if it is a timed event.
-    team_size = models.IntegerField() # number of team members allowed
+    title = models.CharField(max_length=60)
+    description = models.TextField()
+    time_limit = models.TimeField(blank=True)  # time allowed for one round if it is a timed event.
+    team_size = models.IntegerField()  # number of team members allowed
     event_id = models.ForeignKey(Event, on_delete=models.CASCADE)
 
 
@@ -94,25 +98,30 @@ class Catagory_cordinator(models.Model):
     catagory_id = models.ForeignKey(Catagory, on_delete=models.CASCADE)
     participant_id = models.ForeignKey(Participant, on_delete=models.CASCADE)
 
+
 class Item(models.Model):
     name = models.CharField(max_length=255)
     quantity = models.IntegerField()
     available = models.IntegerField()
-    cost = models.DecimalField()
+    cost = models.DecimalField(max_digits=10, decimal_places=2)
     damaged = models.IntegerField()
+
 
 class Requied_items(models.Model):
     item_id = models.ForeignKey(Item, on_delete=models.CASCADE)
     quantity = models.IntegerField()
-#mahnoor
+
+
 class Funds(models.Model):
-    total_fund = models.DecimalField()
-    funds_remaining = models.DecimalField()
+    total_fund = models.DecimalField(max_digits=10, decimal_places=2)
+    funds_remaining = models.DecimalField(max_digits=10, decimal_places=2)
+
 
 class Expenditure(models.Model):
-    amount_spent = models.DecimalField()
+    amount_spent = models.DecimalField(max_digits=10, decimal_places=2)
     purpose = models.CharField(max_length=100)
     eventBody_id = models.ForeignKey(EventBody, on_delete=models.CASCADE)
+
 
 class Volunteer(models.Model):
     skill = models.CharField(max_length=100)
@@ -120,18 +129,22 @@ class Volunteer(models.Model):
     eventBody_id = models.ForeignKey(EventBody, on_delete=models.CASCADE)
     available = models.BooleanField()
 
+
 class Timeslot(models.Model):
     day = models.CharField(max_length=100)
     date = models.DateField()
     timeslot = models.TimeField()
 
+
 class Available_slots(models.Model):
     participant_id = models.ForeignKey(Participant, on_delete=models.CASCADE)
     timeslot_id = models.ForeignKey(Timeslot, on_delete=models.CASCADE)
 
+
 class Item_issued(models.Model):
     item_id = models.ForeignKey(Item, on_delete=models.CASCADE)
-    catagory_id = models.ForeignKey(Catagory, on_delete=models.CASCADE)quantity = models.IntegerField()
+    catagory_id = models.ForeignKey(Catagory, on_delete=models.CASCADE)
+    quantity = models.IntegerField()
     Catagory_cordinator_id = models.ForeignKey(Catagory_cordinator, on_delete=models.CASCADE)
     time_of_issue = models.DateTimeField()
     return_time = models.DateTimeField()

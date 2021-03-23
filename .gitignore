@@ -1,1 +1,5 @@
 env/
+CEMS/.env
+db.sqlite3
+.idea
+*.iml
