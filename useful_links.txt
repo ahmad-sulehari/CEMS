@@ -1,0 +1,10 @@
+https://django.cowhite.com/blog/dynamic-fields-in-django-rest-framwork-serializers/
+https://medium.com/@odyuzaki/django-rest-multiple-models-f60adb698f80
+
+https://stackoverflow.com/questions/53124733/how-to-solve-cors-problem-of-my-django-api
+https://www.geeksforgeeks.org/how-to-enable-cors-headers-in-your-django-project/
+
+https://dev.to/briancaffey/how-to-authenticate-django-rest-framework-api-calls-from-a-vue-js-client-using-session-authentication-and-httponly-cookies-817
+https://gitlab.com/verbose-equals-true/django-postgres-vue-gitlab-ecs/-/blob/develop/backend/apps/accounts/views.py
+
+http://www.cdrf.co/2.4/rest_framework.generics/CreateAPIView.html

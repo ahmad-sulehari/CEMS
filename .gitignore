@@ -3,3 +3,4 @@ CEMS/.env
 db.sqlite3
 .idea
 *.iml
+CEMS_app/migrations/
