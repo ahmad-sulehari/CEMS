@@ -16,11 +16,11 @@ class CustomUserAdmin(UserAdmin):
     add_form = CustomUserCreationForm
     form = CustomUserChangeForm
     model = MyUser
-    list_display = ('email', 'is_staff', 'is_active',)
+    list_display = ('student_id', 'email', 'is_staff', 'is_active', 'is_superuser')
     list_filter = ('email', 'is_staff', 'is_active',)
     fieldsets = (
         (None, {'fields': ('email', 'password', 'student_id', 'date_of_birth', 'profile_image')}),
-        ('Permissions', {'fields': ('is_staff', 'is_active', 'is_verified', 'is_superuser')}),
+        ('Permissions', {'fields': ('is_staff', 'is_active', 'is_verified', 'is_superuser', 'groups', 'user_permissions')}), # adding groups and user_permissions solves the problem of groups and permissions not showing for custom user models.
     )
 
     add_fieldsets = (
@@ -29,8 +29,8 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('email', 'password', 'is_staff', 'is_active')}
         )
     )
-    search_fields = ('email',)
-    ordering = ('email',)
+    search_fields = ('student_id',)
+    ordering = ('student_id',)
 
 
 admin.site.register(MyUser, CustomUserAdmin)
