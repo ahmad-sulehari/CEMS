@@ -8,3 +8,13 @@ https://dev.to/briancaffey/how-to-authenticate-django-rest-framework-api-calls-f
 https://gitlab.com/verbose-equals-true/django-postgres-vue-gitlab-ecs/-/blob/develop/backend/apps/accounts/views.py
 
 http://www.cdrf.co/2.4/rest_framework.generics/CreateAPIView.html
+
+https://sunscrapers.com/blog/django-rest-framework-login-and-authentication/
+https://docs.djangoproject.com/en/3.1/topics/email/
+
+https://dev.to/a_atalla/django-rest-framework-custom-jwt-authentication-5n5
+https://medium.com/djangotube/django-roles-groups-and-permissions-introduction-a54d1070544
+
+https://simpleisbetterthancomplex.com/tutorial/2016/07/22/how-to-extend-django-user-model.html#abstractbaseuser
+
+https://djangopackages.org/packages/p/django-grappelli/
