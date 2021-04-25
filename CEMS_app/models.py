@@ -1,6 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MinLengthValidator, RegexValidator
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from django.contrib.auth.models import PermissionsMixin, AbstractBaseUser, BaseUserManager
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Group, Permission
@@ -66,6 +66,10 @@ class MyUserManager(BaseUserManager):
         user.save()
         return user
 
+    def get_by_natural_key(self, email_):
+        print(email_)
+        return self.get(email=email_)
+
 
 class MyUser(AbstractBaseUser, PermissionsMixin):
     f_name = models.CharField(max_length=60, verbose_name='First Name')
@@ -90,7 +94,7 @@ class MyUser(AbstractBaseUser, PermissionsMixin):
                                          ]
                                          )
 
-    student_id = models.CharField(max_length=10, unique=True,
+    student_id = models.CharField(max_length=10, unique=True, verbose_name='Student ID',
                                 validators=[
                                     MinLengthValidator(10),
                                 ]
@@ -101,26 +105,6 @@ class MyUser(AbstractBaseUser, PermissionsMixin):
             MinLengthValidator(11), MinValueValidator('03000000000'),
             RegexValidator(r'[0-9]*', message='Only digits are allowed')
         ]
-    )
-
-    groups = models.ManyToManyField(
-        Group,
-        verbose_name=_('groups'),
-        blank=True,
-        help_text=_(
-            'The groups this user belongs to. A user will get all permissions '
-            'granted to each of their groups.'
-        ),
-        related_name="user_set",
-        related_query_name="user",
-    )
-    user_permissions = models.ManyToManyField(
-        Permission,
-        verbose_name=_('user permissions'),
-        blank=True,
-        help_text=_('Specific permissions for this user.'),
-        related_name="user_set",
-        related_query_name="user",
     )
 
     is_active = models.BooleanField(default=True)
@@ -155,6 +139,12 @@ class MyUser(AbstractBaseUser, PermissionsMixin):
 
     def get_short_name(self):
         return self.f_name
+
+    def get_short_name(self):
+        return self.email
+
+    def natural_key(self):
+        return self.email
 
     def get_tokens(self):
         access = tokens.generate_access_token(user=self)
