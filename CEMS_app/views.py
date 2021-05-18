@@ -19,7 +19,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from . import tokens
 from rest_framework.parsers import FileUploadParser
-
+from django.utils.timezone import now
 from drf_multiple_model.views import ObjectMultipleModelAPIView
 
 load_dotenv()
@@ -32,7 +32,10 @@ class APIOverView(APIView):
     def get(self, request):
         api_urls = {
             'Login': 'login/',
-            'Signup': 'signup/'
+            'Signup': 'signup/',
+            'Retrieve Game List': 'games/<int:event_id>/',
+            'Update user profile': 'update-profile/<int:pk>/',
+            'Event Details': 'event-details/',
         }
         return Response(api_urls)
 
@@ -54,6 +57,7 @@ class LoginView(generics.CreateAPIView):
             if not user.is_active:
                 return Response({'error': 'Account disabled. Contact the admin'}, status=status.HTTP_401_UNAUTHORIZED)
             data = {
+                'user_id': user.id,
                 'email': user.email,
                 'username': user.student_id,
                 'full_name': user.get_full_name(),
@@ -93,7 +97,6 @@ class SignUpView(generics.CreateAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer_class()(data=request.data)
         if serializer.is_valid(raise_exception=True):  # Also checks it data already exists
-            print(serializer.validated_data)
             passwd = make_password(serializer.validated_data['password'])
             serializer.validated_data['password'] = passwd
             serializer.save()
@@ -150,3 +153,46 @@ class BlackListTokenView(APIView):
             token.blacklist()
         except Exception as e:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+class UpdateProfile(generics.UpdateAPIView):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = UpdateDataSerializer
+    queryset = MyUser.objects.all()
+
+
+class RetrieveGames(generics.ListAPIView):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = GameSerializer
+    model = serializer_class.Meta.model
+
+    def get_queryset(self):
+        event_id = self.kwargs['event_id']
+        queryset = self.model.objects.filter(is_active=True, event_id=event_id)
+        return queryset
+
+
+class EventDetails(generics.ListAPIView):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = EventSerializer
+    model = serializer_class.Meta.model
+    queryset = model.objects.filter(is_active=True)
+
+
+class PaymentList(generics.ListAPIView):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = PaymentSerializer
+    model = serializer_class.Meta.model
+
+    def get_queryset(self):
+        event_id = self.kwargs['event_id']
+        user_id = self.kwargs['user_id']
+        queryset = self.model.objects.filter(event_id=event_id, user_id=user_id)
+        return queryset
+
+
+class PaymentRequest(generics.CreateAPIView):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = PaymentSerializer
+
+

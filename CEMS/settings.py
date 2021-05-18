@@ -39,7 +39,7 @@ AUTH_USER_MODEL = 'CEMS_app.MyUser'
 # Application definition
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=50),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
@@ -68,9 +68,9 @@ SIMPLE_JWT = {
 
 
 INSTALLED_APPS = [
-    'admin_interface',
-    'colorfield',
-    'grappelli',
+    # 'admin_interface',
+    # 'colorfield',
+    # 'grappelli',
     # 'suit',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -174,15 +174,18 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-MEDIA_URL = '/images/'
+MEDIA_URL = '/media/'
 
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static/images')
+    os.path.join(BASE_DIR, 'static/')
 ]
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'images')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'static/media')
 
 REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'
+    ],
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),

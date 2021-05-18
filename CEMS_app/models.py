@@ -4,23 +4,22 @@ from django.contrib.auth.models import PermissionsMixin, AbstractBaseUser, BaseU
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Group, Permission
+from django.contrib.auth.models import UserManager
 import datetime
 from . import tokens
 from django.utils.translation import gettext_lazy as _
 
 # Create your models here.
-MALE = 'male'
-FEMALE = 'female'
-OTHER = 'other'
-GENDER_CHOICES = [
-    (MALE, 'Male'),
-    (FEMALE, 'Female'),
-    (OTHER, 'Other'),
+ONLINE = 'online'
+OFFLINE = 'offline'
+PAYMENT_CHOICES = [
+    (ONLINE, 'Online'),
+    (OFFLINE, 'Offline'),
 ]
 
 
 def upload_to(instance, filename):
-    return f'static/images/{instance.id}-{filename}'
+    return f'static/media/  {instance.id}-{filename}'
 
 
 class MyUserManager(BaseUserManager):
@@ -88,7 +87,7 @@ class MyUser(AbstractBaseUser, PermissionsMixin):
     degree = models.CharField(max_length=3)
     section = models.CharField(max_length=1)
     session = models.CharField(max_length=3)
-    student_id_number = models.CharField(max_length=3, verbose_name='Student ID',
+    student_id_number = models.CharField(max_length=3, verbose_name='Student ID Number', help_text='For example in case of BCSF17m048 enter 048',
                                          validators=[
                                              RegexValidator(r'[0-9]*', message='Only digits are allowed')
                                          ]
@@ -178,6 +177,7 @@ class Game(models.Model):
                     null=True, blank=True
                 )  # time allowed for one round if it is a timed event.
     team_size = models.IntegerField()  # number of team members allowed
+    registration_fee = models.DecimalField(max_digits=5, decimal_places=2, verbose_name='Registration Fee per person', default=0)
     event_id = models.ForeignKey(Event, on_delete=models.CASCADE)
     is_active = models.BooleanField()
 
@@ -185,6 +185,60 @@ class Game(models.Model):
         return self.title + " | " + self.event_id.title + " - " + str(self.event_id.start_date.year)
 
 
+class Item(models.Model):
+    name = models.CharField(max_length=255)
+    quantity = models.PositiveSmallIntegerField(verbose_name='Total Items')
+    allocated = models.PositiveSmallIntegerField()
+    cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Cost per item')
+    damaged = models.PositiveSmallIntegerField(verbose_name='Items Damaged', null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    def available_items(self):
+        return self.quantity - (self.allocated + self.damaged)
+
+
+class Payment(models.Model):
+    event_id = models.ForeignKey(to=Event, on_delete=models.DO_NOTHING)
+    game_id = models.ForeignKey(to=Game, on_delete=models.DO_NOTHING)
+    user_id = models.ForeignKey(to=MyUser, on_delete=models.DO_NOTHING)
+    payment_type = models.CharField(max_length=7, choices=PAYMENT_CHOICES, default=OFFLINE)
+    amount = models.PositiveSmallIntegerField()
+    status = models.BooleanField(default=False, verbose_name='Payment Status', help_text='Tick if verified')
+    submission_date = models.DateTimeField(auto_now_add=True)
+    verification_date = models.DateTimeField(null=True, blank=True)
+    # year = models.PositiveSmallIntegerField(default=datetime.date.year, blank=True, null=True)
+
+    @property
+    def username(self):
+        return self.user_id.student_id
+
+    def __str__(self):
+        return self.game_id.title + " | " + self.user_id.student_id
+
+
+'''
+class GamesEnrolled(models.Model):
+    event_id = models.ForeignKey(to=Event, on_delete=models.DO_NOTHING)
+    game_id = models.ForeignKey(to=Game, on_delete=models.DO_NOTHING)
+    user_id = models.ForeignKey(to=MyUser, on_delete=models.DO_NOTHING)
+    payment_id = models.ForeignKey(to=Payment, on_delete=models.DO_NOTHING)
+
+
+class StaffManager(UserManager):
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(is_staff=True, is_superuser=False)
+
+
+class StaffProxyModel(MyUser):
+    objects = StaffManager()
+    class Meta:
+        proxy = True
+        verbose_name = 'Staff'
+        verbose_name_plural = 'Staffs'
+'''
 '''
 class Role(models.Model):
     role_name = models.CharField(max_length=30)
@@ -254,19 +308,12 @@ class Event(models.Model):
 
 
 
-class CategoryCoordinator(models.Model):
-    category_id = models.ForeignKey(Category, on_delete=models.CASCADE)
-    event_body_member_id = models.ForeignKey(EventBody, on_delete=models.CASCADE)
+class GameCoordinator(models.Model):
+    game_id = models.ForeignKey(Game, on_delete=models.CASCADE)
+    user_id = models.ForeignKey(MyUser)
+'''
 
-
-class Item(models.Model):
-    name = models.CharField(max_length=255)
-    quantity = models.IntegerField()
-    available = models.IntegerField()
-    cost = models.DecimalField(max_digits=10, decimal_places=2)
-    damaged = models.IntegerField()
-
-
+'''
 class RequiredItems(models.Model):
     item_id = models.ForeignKey(Item, on_delete=models.CASCADE)
     quantity = models.IntegerField()
