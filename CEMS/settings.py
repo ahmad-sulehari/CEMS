@@ -32,7 +32,8 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = True
 
 ALLOWED_HOSTS = [
-
+    '9dfba76ff8fd.ngrok.io',
+    '127.0.0.1',
 ]
 
 AUTH_USER_MODEL = 'CEMS_app.MyUser'
@@ -62,7 +63,7 @@ SIMPLE_JWT = {
     'JTI_CLAIM': 'jti',
 
     'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
-    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
+    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=50),
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
 
@@ -84,6 +85,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'drf_yasg',
     'rest_framework_simplejwt.token_blacklist',
+    'django_admin_search',
 ]
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
@@ -160,7 +162,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Karachi'
 
 USE_I18N = True
 
@@ -173,12 +175,13 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+# STATICFILES_DIRS = [
+#     os.path.join(BASE_DIR, 'static/')
+# ]
 
 MEDIA_URL = '/media/'
-
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static/')
-]
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'static/media')
 
@@ -201,3 +204,5 @@ EMAIL_HOST_USER = 'noreplysspucit@gmail.com'
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD')
 EMAIL_TIMEOUT = 3000
 
+
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'

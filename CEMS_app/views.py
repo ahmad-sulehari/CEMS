@@ -7,6 +7,7 @@ from rest_framework import permissions, status, authentication, views
 from rest_framework.views import APIView
 from rest_framework import generics
 from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import *
 from .models import *
 from .utils import Util
@@ -161,6 +162,34 @@ class UpdateProfile(generics.UpdateAPIView):
     queryset = MyUser.objects.all()
 
 
+class UpdateProfileImage(generics.UpdateAPIView):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = ProfileImageSerializer
+    queryset = MyUser.objects.all()
+
+
+class MediaRetrieval(generics.ListAPIView):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = MediaSerializer
+    model = serializer_class.Meta.model
+
+    def get_queryset(self):
+        event_id = self.kwargs['event_id']
+        queryset = self.model.objects.filter(event_id=event_id)
+        return queryset
+
+
+class ProfileData(generics.ListAPIView):
+    permission_classes = (permissions.AllowAny, )
+    serializer_class = ProfileDataSerializer
+    model = serializer_class.Meta.model
+
+    def get_queryset(self):
+        user_id = self.kwargs['user_id']
+        queryset = self.model.objects.filter(id=user_id)
+        return queryset
+
+
 class RetrieveGames(generics.ListAPIView):
     permission_classes = (permissions.AllowAny,)
     serializer_class = GameSerializer
@@ -194,5 +223,53 @@ class PaymentList(generics.ListAPIView):
 class PaymentRequest(generics.CreateAPIView):
     permission_classes = (permissions.AllowAny,)
     serializer_class = PaymentSerializer
+
+
+class TeamRegistration(APIView):
+
+    def post(self, request):
+        result = TeamRegisterSerializer(request.data).data
+        team = Team.objects.create(team_lead=result['team_lead'], team_name=result['team_name'], team_size=result['team_size'])
+        team_id = team.id
+        for member in result['team_members']:
+            user_id = MyUser.objects.filter(is_active=True, is_verified=True).get(student_id=member).id
+            if user_id is None:
+                return Response({'error', f'The user with student ID: {member} is not registered.'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+            else:
+                TeamParticipant.objects.create(team_id=team_id, team_member_id=user_id)
+        return Response({
+                "team_id": f"{team_id}",
+                "team_name": f"{team.team_name}"
+                },
+            status=status.HTTP_201_CREATED
+            )
+
+
+class TeamGameEnrollment(generics.ListCreateAPIView):
+    serializer_class = TeamGameEnrollment
+    permission_classes = (permissions.AllowAny,)
+    queryset = serializer_class.Meta.model.objects.all()
+
+
+'''
+json format:
+{
+	"team_lead": "1",
+	"team_name": "Reachers",
+	"team_size": "3",
+	"team_members":[ "BCSF17M001", "BCSF17M011","BCSF17m012"]
+}
+parsed format
+{
+    "team_lead": 1,
+    "team_name": "Reachers",
+    "team_size": 3,
+    "team_members": [
+        "BCSF17M001",
+        "BCSF17M011",
+        "BCSF17m012"
+    ]
+}
+'''
 
 
