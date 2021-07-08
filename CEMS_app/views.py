@@ -2,25 +2,28 @@ from django.shortcuts import render
 # from django.contrib.auth.models import User
 from rest_framework import viewsets
 # from rest_framework_simplejwt.tokens import RefreshToken
+from django.utils.timezone import now
+from drf_multiple_model.views import ObjectMultipleModelAPIView
+
 from django.contrib.auth.hashers import make_password, check_password
-from rest_framework import permissions, status, authentication, views
+from django.contrib.sites.shortcuts import get_current_site
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import permissions, status, views
+from rest_framework.parsers import FileUploadParser
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import generics
-from rest_framework.response import Response
-from .serializers import *
-from .models import *
-from .utils import Util
-from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
-import jwt
 from dotenv import load_dotenv
-import os
-from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from .serializers import *
+from .utils import Util
+from .models import *
 from . import tokens
-from rest_framework.parsers import FileUploadParser
+import jwt
+import os
 
-from drf_multiple_model.views import ObjectMultipleModelAPIView
 
 load_dotenv()
 
@@ -32,7 +35,10 @@ class APIOverView(APIView):
     def get(self, request):
         api_urls = {
             'Login': 'login/',
-            'Signup': 'signup/'
+            'Signup': 'signup/',
+            'Retrieve Game List': 'games/<int:event_id>/',
+            'Update user profile': 'update-profile/<int:pk>/',
+            'Event Details': 'event-details/',
         }
         return Response(api_urls)
 
@@ -54,6 +60,7 @@ class LoginView(generics.CreateAPIView):
             if not user.is_active:
                 return Response({'error': 'Account disabled. Contact the admin'}, status=status.HTTP_401_UNAUTHORIZED)
             data = {
+                'user_id': user.id,
                 'email': user.email,
                 'username': user.student_id,
                 'full_name': user.get_full_name(),
@@ -93,7 +100,6 @@ class SignUpView(generics.CreateAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer_class()(data=request.data)
         if serializer.is_valid(raise_exception=True):  # Also checks it data already exists
-            print(serializer.validated_data)
             passwd = make_password(serializer.validated_data['password'])
             serializer.validated_data['password'] = passwd
             serializer.save()
@@ -112,7 +118,7 @@ class SignUpView(generics.CreateAPIView):
                 'email_subject': 'Verify your Email for Sports Society',
                 'email_body': email_body,
                 'to_email': user.email,
-                }
+            }
             Util.send_email(data=data)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -150,3 +156,122 @@ class BlackListTokenView(APIView):
             token.blacklist()
         except Exception as e:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+class UpdateProfile(generics.UpdateAPIView):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = UpdateDataSerializer
+    queryset = MyUser.objects.all()
+
+
+class UpdateProfileImage(generics.UpdateAPIView):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = ProfileImageSerializer
+    queryset = MyUser.objects.all()
+
+
+class MediaRetrieval(generics.ListAPIView):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = MediaSerializer
+    model = serializer_class.Meta.model
+
+    def get_queryset(self):
+        event_id = self.kwargs['event_id']
+        queryset = self.model.objects.filter(event_id=event_id)
+        return queryset
+
+
+class ProfileData(generics.ListAPIView):
+    permission_classes = (permissions.AllowAny, )
+    serializer_class = ProfileDataSerializer
+    model = serializer_class.Meta.model
+
+    def get_queryset(self):
+        user_id = self.kwargs['user_id']
+        queryset = self.model.objects.filter(id=user_id)
+        return queryset
+
+
+class RetrieveGames(generics.ListAPIView):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = GameSerializer
+    model = serializer_class.Meta.model
+
+    def get_queryset(self):
+        event_id = self.kwargs['event_id']
+        queryset = self.model.objects.filter(is_active=True, event_id=event_id)
+        return queryset
+
+
+class EventDetails(generics.ListAPIView):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = EventSerializer
+    model = serializer_class.Meta.model
+    queryset = model.objects.filter(is_active=True)
+
+
+class PaymentList(generics.ListAPIView):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = PaymentSerializer
+    model = serializer_class.Meta.model
+
+    def get_queryset(self):
+        event_id = self.kwargs['event_id']
+        user_id = self.kwargs['user_id']
+        queryset = self.model.objects.filter(event_id=event_id, user_id=user_id)
+        return queryset
+
+
+class PaymentRequest(generics.CreateAPIView):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = PaymentSerializer
+
+
+class TeamRegistration(APIView):
+
+    def post(self, request):
+        result = TeamRegisterSerializer(request.data).data
+        team = Team.objects.create(team_lead=result['team_lead'], team_name=result['team_name'], team_size=result['team_size'])
+        team_id = team.id
+        for member in result['team_members']:
+            user_id = MyUser.objects.filter(is_active=True, is_verified=True).get(student_id=member).id
+            if user_id is None:
+                return Response({'error', f'The user with student ID: {member} is not registered.'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+            else:
+                TeamParticipant.objects.create(team_id=team_id, team_member_id=user_id)
+        return Response({
+                "team_id": f"{team_id}",
+                "team_name": f"{team.team_name}"
+               },
+            status=status.HTTP_201_CREATED
+        )
+
+
+class TeamGameEnrollment(generics.ListCreateAPIView):
+    serializer_class = TeamGameEnrollment
+    permission_classes = (permissions.AllowAny,)
+    queryset = serializer_class.Meta.model.objects.all()
+
+
+'''
+json format:
+{
+	"team_lead": "1",
+	"team_name": "Reachers",
+	"team_size": "3",
+	"team_members":[ "BCSF17M001", "BCSF17M011","BCSF17m012"]
+}
+parsed format
+{
+    "team_lead": 1,
+    "team_name": "Reachers",
+    "team_size": 3,
+    "team_members": [
+        "BCSF17M001",
+        "BCSF17M011",
+        "BCSF17m012"
+    ]
+}
+'''
+
+

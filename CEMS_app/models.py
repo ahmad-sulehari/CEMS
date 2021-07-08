@@ -1,31 +1,29 @@
-from django.db import models
-from django.core.validators import MinValueValidator, MinLengthValidator, RegexValidator
 from django.contrib.auth.models import PermissionsMixin, AbstractBaseUser, BaseUserManager
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth.hashers import make_password
+from django.core.validators import MinValueValidator, MinLengthValidator, RegexValidator
 from django.contrib.auth.models import Group, Permission
-import datetime
-from . import tokens
 from django.utils.translation import gettext_lazy as _
+from django.db import models
+from . import tokens
+import datetime
+
 
 # Create your models here.
-MALE = 'male'
-FEMALE = 'female'
-OTHER = 'other'
-GENDER_CHOICES = [
-    (MALE, 'Male'),
-    (FEMALE, 'Female'),
-    (OTHER, 'Other'),
+
+ONLINE = 'online'
+OFFLINE = 'offline'
+PAYMENT_CHOICES = [
+    (ONLINE, 'Online'),
+    (OFFLINE, 'Offline'),
 ]
 
 
 def upload_to(instance, filename):
-    return f'static/images/{instance.id}-{filename}'
+    return f'static/media/  {instance.id}-{filename}'
 
 
 class MyUserManager(BaseUserManager):
 
-    def create_user(self, student_id, email, password, date_of_birth, gender, f_name, l_name, phone_number, **extra_fields):
+    def create_user(self, student_id, email, password, date_of_birth, gender, f_name, l_name, phone_number):
         if student_id is None:
             raise TypeError('User must have a username')
         if email is None:
@@ -54,7 +52,7 @@ class MyUserManager(BaseUserManager):
         user.save(using=self.db)
         return user
 
-    def create_superuser(self, student_id, email, password, date_of_birth, gender, f_name, l_name, phone_number, **extra_fields):
+    def create_superuser(self, student_id, email, password, date_of_birth, gender, f_name, l_name, phone_number):
 
         user = self.create_user(
             student_id=student_id, email=email, password=password, date_of_birth=date_of_birth, gender=gender,
@@ -67,7 +65,6 @@ class MyUserManager(BaseUserManager):
         return user
 
     def get_by_natural_key(self, email_):
-        print(email_)
         return self.get(email=email_)
 
 
@@ -82,23 +79,21 @@ class MyUser(AbstractBaseUser, PermissionsMixin):
                                     MinLengthValidator(8),
                                     RegexValidator(
                                         r'(?=.*?\d)(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[=+\-#^*@()&])[(@#)=+&\-*^A-Za-z\d]{8,20}',
-                                        message='Must contain at least one uppercase, one lowercase,one special char =+-#^*@()& and one digit.')
+                                        message='Must contain at least one uppercase, one lowercase,one special char =+-#^*@()& and one digit.'
+                                    )
                                 ]
-                                )
+    )
     degree = models.CharField(max_length=3)
     section = models.CharField(max_length=1)
     session = models.CharField(max_length=3)
-    student_id_number = models.CharField(max_length=3, verbose_name='Student ID',
-                                         validators=[
-                                             RegexValidator(r'[0-9]*', message='Only digits are allowed')
-                                         ]
-                                         )
+    student_id_number = models.CharField(
+        max_length=3, verbose_name='Student ID Number', help_text='For example in case of BCSF17m048 enter 048',
+        validators=[RegexValidator(r'[0-9]*', message='Only digits are allowed')]
+    )
 
-    student_id = models.CharField(max_length=10, unique=True, verbose_name='Student ID',
-                                validators=[
-                                    MinLengthValidator(10),
-                                ]
-                                )
+    student_id = models.CharField(
+        max_length=10, unique=True, verbose_name='Student ID', validators=[MinLengthValidator(10)]
+    )
     phone_number = models.CharField(
         max_length=11, unique=True,
         validators=[
@@ -116,7 +111,7 @@ class MyUser(AbstractBaseUser, PermissionsMixin):
     profile_image = models.ImageField(_('Image'), null=True, blank=True, upload_to=upload_to)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['student_id', 'phone_number', 'date_of_birth', 'f_name', 'l_name', 'gender' ]
+    REQUIRED_FIELDS = ['student_id', 'phone_number', 'date_of_birth', 'f_name', 'l_name', 'gender']
 
     objects = MyUserManager()
 
@@ -140,9 +135,6 @@ class MyUser(AbstractBaseUser, PermissionsMixin):
     def get_short_name(self):
         return self.f_name
 
-    def get_short_name(self):
-        return self.email
-
     def natural_key(self):
         return self.email
 
@@ -165,6 +157,13 @@ class Event(models.Model):
     location = models.CharField(max_length=256)
     description = models.TextField(null=True, blank=True)
     is_active = models.BooleanField(verbose_name='Active')  # Archived or active
+    payment_account_number = models.CharField(
+        max_length=11, verbose_name='Microfinance Account',
+        validators=[
+            MinLengthValidator(11), MinValueValidator('03000000000'),
+            RegexValidator(r'[0-9]*', message='Only digits are allowed')
+        ]
+    )
 
     def __str__(self):
         return self.title + " - " + str(self.start_date.year)
@@ -176,8 +175,11 @@ class Game(models.Model):
     time_limit = models.PositiveSmallIntegerField(
                     help_text='Enter time in minutes only. Leave blank in case of no time limit',
                     null=True, blank=True
-                )  # time allowed for one round if it is a timed event.
-    team_size = models.IntegerField()  # number of team members allowed
+    )  # time allowed for one round if it is a timed event.
+    team_size = models.IntegerField(default=1)  # number of team members allowed
+    registration_fee = models.DecimalField(
+        max_digits=5, decimal_places=0, verbose_name='Registration Fee per person', default=0
+    )
     event_id = models.ForeignKey(Event, on_delete=models.CASCADE)
     is_active = models.BooleanField()
 
@@ -185,128 +187,104 @@ class Game(models.Model):
         return self.title + " | " + self.event_id.title + " - " + str(self.event_id.start_date.year)
 
 
-'''
-class Role(models.Model):
-    role_name = models.CharField(max_length=30)
-    description = models.CharField(max_length=200, null=True, blank=True)
+class GameCoordinator(models.Model):
+    game_id = models.ForeignKey(to=Game, on_delete=models.CASCADE)
+    user_id = models.ForeignKey(to=MyUser, on_delete=models.DO_NOTHING)
 
     def __str__(self):
-        return self.role_name
-
-
-class ManagementStaff(models.Model):
-    user_id = models.ForeignKey(to=User, on_delete=models.DO_NOTHING)
-    role_type = models.ForeignKey(to=Role, on_delete=models.DO_NOTHING)
-    hire_date = models.DateTimeField(auto_now_add=True)
-    termination_date = models.DateTimeField(null=True, blank=True)
-    last_modified = models.DateTimeField(auto_now=True)
-
-
-'''
-'''
-class Team(models.Model):
-    team_lead = models.ForeignKey(Person, on_delete=models.CASCADE)
-    team_name = models.CharField(max_length=60)
-
-
-class TeamParticipant(models.Model):
-    team_id = models.ForeignKey(Team, on_delete=models.CASCADE)
-    team_member_id = models.ForeignKey(Person, on_delete=models.CASCADE)
-    team_size = models.IntegerField(verbose_name='Members in Team')
-
-
-class EventBody(models.Model):
-    participant_id = models.ForeignKey(Person, on_delete=models.CASCADE)
-    role = models.CharField(max_length=60)
-    position = models.CharField(max_length=60)
-
-
-class Chairperson(models.Model):
-    first_name = models.CharField(max_length=60)
-    last_name = models.CharField(max_length=60)
-    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default=MALE)
-    phone_number = models.CharField(
-        max_length=11,
-        validators=[
-            MinLengthValidator(11), MinValueValidator('03000000000'),
-            RegexValidator(r'[0-9]*', message='only digits are allowed')
-        ]
-    )
-    email = models.EmailField(max_length=254, unique=True)
-    password = models.CharField(max_length=20)
-    username = models.CharField(max_length=12,
-
-                                validators=[
-                                    MinLengthValidator(5)
-                                ]
-                                )
-    designation = models.CharField(max_length=20)
-    status = models.BooleanField()  # active or retired from chairperson role
-
-
-class Event(models.Model):
-    title = models.CharField(max_length=256)
-    start_date = models.DateField()
-    end_date = models.DateField()
-    location = models.CharField(max_length=256)
-    description = models.TextField()
-    status = models.BooleanField()  # Archived or active
-
-
-
-class CategoryCoordinator(models.Model):
-    category_id = models.ForeignKey(Category, on_delete=models.CASCADE)
-    event_body_member_id = models.ForeignKey(EventBody, on_delete=models.CASCADE)
+        return self.user_id.student_id + ' | ' + self.game_id.title
 
 
 class Item(models.Model):
     name = models.CharField(max_length=255)
-    quantity = models.IntegerField()
-    available = models.IntegerField()
-    cost = models.DecimalField(max_digits=10, decimal_places=2)
-    damaged = models.IntegerField()
+    quantity = models.PositiveSmallIntegerField(verbose_name='Total Items')
+    allocated = models.PositiveSmallIntegerField()
+    cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Cost per item')
+    damaged = models.PositiveSmallIntegerField(verbose_name='Items Damaged', null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def available_items(self):
+        return self.quantity - (self.allocated + self.damaged)
+
+
+class Payment(models.Model):
+    event_id = models.ForeignKey(to=Event, on_delete=models.DO_NOTHING)
+    game_id = models.ForeignKey(to=Game, on_delete=models.DO_NOTHING)
+    user_id = models.ForeignKey(to=MyUser, on_delete=models.DO_NOTHING)
+    payment_type = models.CharField(max_length=7, choices=PAYMENT_CHOICES, default=OFFLINE)
+    amount = models.PositiveSmallIntegerField()
+    status = models.BooleanField(default=False, verbose_name='Payment Status', help_text='Tick if verified')
+    submission_date = models.DateTimeField(auto_now_add=True)
+    verification_date = models.DateTimeField(null=True, blank=True)
+    # year = models.PositiveSmallIntegerField(default=datetime.date.year, blank=True, null=True)
+    tid = models.CharField(null=True, blank=True, max_length=15)
+
+    @property
+    def username(self):
+        return self.user_id.student_id
+
+    def __str__(self):
+        return self.game_id.title + " | " + self.user_id.student_id
+
+
+class Team(models.Model):
+    team_lead = models.ForeignKey(to=MyUser, on_delete=models.DO_NOTHING)
+    team_name = models.CharField(max_length=60, unique=True)
+    team_size = models.PositiveSmallIntegerField(verbose_name='Members in Team')
+
+    def __str__(self):
+        return self.team_name
+
+
+class TeamParticipant(models.Model):
+    team_id = models.ForeignKey(to=Team, on_delete=models.CASCADE)
+    team_member_id = models.ForeignKey(to=MyUser, on_delete=models.CASCADE)
+
+
+class TeamEnrolment(models.Model):
+    team_id = models.ForeignKey(to=Team, on_delete=models.DO_NOTHING)
+    game_id = models.ForeignKey(to=Game, on_delete=models.DO_NOTHING)
 
 
 class RequiredItems(models.Model):
-    item_id = models.ForeignKey(Item, on_delete=models.CASCADE)
-    quantity = models.IntegerField()
+    item_id = models.ForeignKey(to=Item, on_delete=models.CASCADE)
+    quantity = models.PositiveSmallIntegerField()
 
 
-class Funds(models.Model):
-    total_fund = models.DecimalField(max_digits=10, decimal_places=2)
-    funds_remaining = models.DecimalField(max_digits=10, decimal_places=2)
+class Media(models.Model):
+    event_id = models.ForeignKey(to=Event, on_delete=models.DO_NOTHING)
+    url = models.TextField(null=True, blank=True)
+    image = models.ImageField(_('Image'), null=True, blank=True, upload_to=upload_to)
+    title = models.CharField(max_length=30)
+    description = models.CharField(max_length=30, null=True, blank=True)
+
+    def __str__(self):
+        return self.title
+
+
+class Volunteer(models.Model):
+    skill = models.CharField(max_length=100)
+    user_id = models.ForeignKey(to=MyUser, on_delete=models.DO_NOTHING, help_text='Volunteer', verbose_name='Volunteer')
+    available = models.BooleanField()
+
+    def __str__(self):
+        return self.user_id.student_id
 
 
 class Expenditure(models.Model):
     amount_spent = models.DecimalField(max_digits=10, decimal_places=2)
     purpose = models.CharField(max_length=100)
-    eventBody_id = models.ForeignKey(EventBody, on_delete=models.CASCADE)
-
-
-class Volunteer(models.Model):
-    skill = models.CharField(max_length=100)
-    participant_id = models.ForeignKey(Person, on_delete=models.CASCADE)
-    eventBody_id = models.ForeignKey(EventBody, on_delete=models.CASCADE)
-    available = models.BooleanField()
-
-
-class Timeslot(models.Model):
-    day = models.CharField(max_length=100)
-    date = models.DateField()
-    timeslot = models.TimeField()
-
-
-class BookedSlots(models.Model):
-    participant_id = models.ForeignKey(Person, on_delete=models.CASCADE)
-    timeslot_id = models.ForeignKey(Timeslot, on_delete=models.CASCADE)
+    staff_id = models.ForeignKey(to=MyUser, on_delete=models.DO_NOTHING)
 
 
 class ItemIssued(models.Model):
-    item_id = models.ForeignKey(Item, on_delete=models.CASCADE)
-    category_id = models.ForeignKey(Category, on_delete=models.CASCADE)
-    quantity = models.IntegerField()
-    category_coordinator_id = models.ForeignKey(CategoryCoordinator, on_delete=models.CASCADE)
+    item_id = models.ForeignKey(Item, on_delete=models.DO_NOTHING)
+    game_id = models.ForeignKey(to=Game, on_delete=models.DO_NOTHING)
+    quantity = models.PositiveSmallIntegerField
+    game_coordinator_id = models.ForeignKey(to=GameCoordinator, on_delete=models.DO_NOTHING)
     time_of_issue = models.DateTimeField()
     return_time = models.DateTimeField()
-
-'''
+    damaged = models.PositiveSmallIntegerField(help_text='Items found damaged on return', verbose_name='Damaged Items')
