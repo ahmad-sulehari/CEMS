@@ -2,26 +2,28 @@ from django.shortcuts import render
 # from django.contrib.auth.models import User
 from rest_framework import viewsets
 # from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth.hashers import make_password, check_password
-from rest_framework import permissions, status, authentication, views
-from rest_framework.views import APIView
-from rest_framework import generics
-from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import *
-from .models import *
-from .utils import Util
-from django.contrib.sites.shortcuts import get_current_site
-from django.urls import reverse
-import jwt
-from dotenv import load_dotenv
-import os
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
-from . import tokens
-from rest_framework.parsers import FileUploadParser
 from django.utils.timezone import now
 from drf_multiple_model.views import ObjectMultipleModelAPIView
+
+from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.sites.shortcuts import get_current_site
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import permissions, status, views
+from rest_framework.parsers import FileUploadParser
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework import generics
+from django.urls import reverse
+from dotenv import load_dotenv
+from drf_yasg import openapi
+from .serializers import *
+from .utils import Util
+from .models import *
+from . import tokens
+import jwt
+import os
+
 
 load_dotenv()
 
@@ -116,7 +118,7 @@ class SignUpView(generics.CreateAPIView):
                 'email_subject': 'Verify your Email for Sports Society',
                 'email_body': email_body,
                 'to_email': user.email,
-                }
+            }
             Util.send_email(data=data)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -240,9 +242,9 @@ class TeamRegistration(APIView):
         return Response({
                 "team_id": f"{team_id}",
                 "team_name": f"{team.team_name}"
-                },
+               },
             status=status.HTTP_201_CREATED
-            )
+        )
 
 
 class TeamGameEnrollment(generics.ListCreateAPIView):

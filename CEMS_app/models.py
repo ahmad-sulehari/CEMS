@@ -1,10 +1,11 @@
-from django.db import models
-from django.core.validators import MinValueValidator, MinLengthValidator, RegexValidator
 from django.contrib.auth.models import PermissionsMixin, AbstractBaseUser, BaseUserManager
+from django.core.validators import MinValueValidator, MinLengthValidator, RegexValidator
 from django.contrib.auth.models import Group, Permission
-import datetime
-from . import tokens
 from django.utils.translation import gettext_lazy as _
+from django.db import models
+from . import tokens
+import datetime
+
 
 # Create your models here.
 
@@ -78,9 +79,10 @@ class MyUser(AbstractBaseUser, PermissionsMixin):
                                     MinLengthValidator(8),
                                     RegexValidator(
                                         r'(?=.*?\d)(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[=+\-#^*@()&])[(@#)=+&\-*^A-Za-z\d]{8,20}',
-                                        message='Must contain at least one uppercase, one lowercase,one special char =+-#^*@()& and one digit.')
+                                        message='Must contain at least one uppercase, one lowercase,one special char =+-#^*@()& and one digit.'
+                                    )
                                 ]
-                                )
+    )
     degree = models.CharField(max_length=3)
     section = models.CharField(max_length=1)
     session = models.CharField(max_length=3)
@@ -173,10 +175,10 @@ class Game(models.Model):
     time_limit = models.PositiveSmallIntegerField(
                     help_text='Enter time in minutes only. Leave blank in case of no time limit',
                     null=True, blank=True
-                )  # time allowed for one round if it is a timed event.
-    team_size = models.IntegerField()  # number of team members allowed
+    )  # time allowed for one round if it is a timed event.
+    team_size = models.IntegerField(default=1)  # number of team members allowed
     registration_fee = models.DecimalField(
-        max_digits=5, decimal_places=2, verbose_name='Registration Fee per person', default=0
+        max_digits=5, decimal_places=0, verbose_name='Registration Fee per person', default=0
     )
     event_id = models.ForeignKey(Event, on_delete=models.CASCADE)
     is_active = models.BooleanField()
@@ -286,109 +288,3 @@ class ItemIssued(models.Model):
     time_of_issue = models.DateTimeField()
     return_time = models.DateTimeField()
     damaged = models.PositiveSmallIntegerField(help_text='Items found damaged on return', verbose_name='Damaged Items')
-
-
-'''
-class GamesEnrolled(models.Model):
-    event_id = models.ForeignKey(to=Event, on_delete=models.DO_NOTHING)
-    game_id = models.ForeignKey(to=Game, on_delete=models.DO_NOTHING)
-    user_id = models.ForeignKey(to=MyUser, on_delete=models.DO_NOTHING)
-    payment_id = models.ForeignKey(to=Payment, on_delete=models.DO_NOTHING)
-
-
-class StaffManager(UserManager):
-    def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.filter(is_staff=True, is_superuser=False)
-
-
-class StaffProxyModel(MyUser):
-    objects = StaffManager()
-    class Meta:
-        proxy = True
-        verbose_name = 'Staff'
-        verbose_name_plural = 'Staffs'
-
-
-class Role(models.Model):
-    role_name = models.CharField(max_length=30)
-    description = models.CharField(max_length=200, null=True, blank=True)
-
-    def __str__(self):
-        return self.role_name
-
-
-class ManagementStaff(models.Model):
-    user_id = models.ForeignKey(to=User, on_delete=models.DO_NOTHING)
-    role_type = models.ForeignKey(to=Role, on_delete=models.DO_NOTHING)
-    hire_date = models.DateTimeField(auto_now_add=True)
-    termination_date = models.DateTimeField(null=True, blank=True)
-    last_modified = models.DateTimeField(auto_now=True)
-
- 
-
-class EventBody(models.Model):
-    participant_id = models.ForeignKey(Person, on_delete=models.CASCADE)
-    role = models.CharField(max_length=60)
-    position = models.CharField(max_length=60)
-
-
-class Chairperson(models.Model):
-    first_name = models.CharField(max_length=60)
-    last_name = models.CharField(max_length=60)
-    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default=MALE)
-    phone_number = models.CharField(
-        max_length=11,
-        validators=[
-            MinLengthValidator(11), MinValueValidator('03000000000'),
-            RegexValidator(r'[0-9]*', message='only digits are allowed')
-        ]
-    )
-    email = models.EmailField(max_length=254, unique=True)
-    password = models.CharField(max_length=20)
-    username = models.CharField(max_length=12,
-
-                                validators=[
-                                    MinLengthValidator(5)
-                                ]
-                                )
-    designation = models.CharField(max_length=20)
-    status = models.BooleanField()  # active or retired from chairperson role
-
-
-class Event(models.Model):
-    title = models.CharField(max_length=256)
-    start_date = models.DateField()
-    end_date = models.DateField()
-    location = models.CharField(max_length=256)
-    description = models.TextField()
-    status = models.BooleanField()  # Archived or active
-
-
-
-
-
-class Funds(models.Model):
-    total_fund = models.DecimalField(max_digits=10, decimal_places=2)
-    funds_remaining = models.DecimalField(max_digits=10, decimal_places=2)
-
-
-
-
-
-
-
-class Timeslot(models.Model):
-    day = models.CharField(max_length=100)
-    date = models.DateField()
-    timeslot = models.TimeField()
-
-
-class BookedSlots(models.Model):
-    participant_id = models.ForeignKey(Person, on_delete=models.CASCADE)
-    timeslot_id = models.ForeignKey(Timeslot, on_delete=models.CASCADE)
-
-
-
-
-'''

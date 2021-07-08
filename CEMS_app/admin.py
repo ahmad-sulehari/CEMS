@@ -1,11 +1,11 @@
-import csv
-from django.contrib import admin
-from django.contrib.admin import AdminSite
+from .forms import CustomUserCreationForm, CustomUserChangeForm
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth import get_user_model
+from django.contrib.admin import AdminSite
+from django.contrib import admin
 from django.http import HttpResponse
-from .forms import CustomUserCreationForm, CustomUserChangeForm
 from .models import *
+import csv
 
 MyUser = get_user_model()
 
@@ -48,8 +48,7 @@ class CustomUserAdmin(UserAdmin):
         ),
         ('Permissions', {
             'fields': ('is_staff', 'is_active', 'is_verified', 'is_superuser', 'groups')
-            }
-         ),  # can add for display: adding groups and user_permissions.
+        }),  # can add for display: adding groups and user_permissions.
     )
 
     add_fieldsets = (
